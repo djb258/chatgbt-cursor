@@ -58,7 +58,12 @@ class LocalCommanderClient {
         }
       }
     } catch (error) {
-      console.error('❌ Error polling for commands:', error.message);
+      if (error.response && error.response.status === 429) {
+        console.log('⚠️ Rate limited, waiting longer before next poll...');
+        // Don't log this as an error since it's expected behavior
+      } else {
+        console.error('❌ Error polling for commands:', error.message);
+      }
     }
   }
 
@@ -79,6 +84,12 @@ class LocalCommanderClient {
           break;
         case 'component_create':
           await this.handleComponentCreate(command);
+          break;
+        case 'file_read':
+          await this.handleFileRead(command);
+          break;
+        case 'directory_list':
+          await this.handleDirectoryList(command);
           break;
         default:
           await this.handleGenericCommand(command);
@@ -131,19 +142,14 @@ class LocalCommanderClient {
 
   async writeInstructionToFile(instruction) {
     try {
-      // Read existing instructions
-      let instructions = [];
+      // Read existing instructions as an object with an instructions array
+      let fileData = { instructions: [] };
       if (fs.existsSync(this.instructionFile)) {
-        const fileContent = fs.readFileSync(this.instructionFile, 'utf8');
-        instructions = JSON.parse(fileContent);
+        fileData = JSON.parse(fs.readFileSync(this.instructionFile, 'utf8'));
       }
-      
-      // Add new instruction
-      instructions.push(instruction);
-      
-      // Write back to file
-      fs.writeFileSync(this.instructionFile, JSON.stringify(instructions, null, 2));
-      
+      fileData.instructions.push(instruction);
+      fileData.lastUpdated = new Date().toISOString();
+      fs.writeFileSync(this.instructionFile, JSON.stringify(fileData, null, 2));
     } catch (error) {
       console.error('Error writing instruction to file:', error);
       throw error;
@@ -222,6 +228,99 @@ export default ${componentName};
     await this.updateCommandStatus(command.id, 'completed', result);
   }
 
+  async handleFileRead(command) {
+    const { filepath, encoding = 'utf8' } = command.data;
+    console.log(`📖 Reading file: ${filepath}`);
+    
+    try {
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`File not found: ${filepath}`);
+      }
+      
+      const content = fs.readFileSync(filepath, encoding);
+      const stats = fs.statSync(filepath);
+      
+      const result = {
+        filepath,
+        content,
+        size: stats.size,
+        modified: stats.mtime.toISOString(),
+        encoding
+      };
+      
+      console.log(`✅ File read successfully: ${filepath} (${stats.size} bytes)`);
+      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+    } catch (error) {
+      throw new Error(`Failed to read file ${filepath}: ${error.message}`);
+    }
+  }
+
+  async handleDirectoryList(command) {
+    const { directory = '.', recursive = false, includeFiles = true, includeDirs = true } = command.data;
+    console.log(`📁 Listing directory: ${directory}`);
+    
+    try {
+      if (!fs.existsSync(directory)) {
+        throw new Error(`Directory not found: ${directory}`);
+      }
+      
+      const listDirectory = (dir, depth = 0) => {
+        const items = [];
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const relativePath = path.relative(directory, fullPath);
+          
+          if (entry.isDirectory()) {
+            if (includeDirs) {
+              items.push({
+                name: entry.name,
+                type: 'directory',
+                path: relativePath,
+                fullPath
+              });
+            }
+            
+            if (recursive && depth < 3) { // Limit recursion depth
+              const subItems = listDirectory(fullPath, depth + 1);
+              items.push(...subItems);
+            }
+          } else if (entry.isFile() && includeFiles) {
+            const stats = fs.statSync(fullPath);
+            items.push({
+              name: entry.name,
+              type: 'file',
+              path: relativePath,
+              fullPath,
+              size: stats.size,
+              modified: stats.mtime.toISOString(),
+              extension: path.extname(entry.name)
+            });
+          }
+        }
+        
+        return items;
+      };
+      
+      const items = listDirectory(directory);
+      
+      const result = {
+        directory,
+        items,
+        total: items.length,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ Directory listed successfully: ${directory} (${items.length} items)`);
+      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+    } catch (error) {
+      throw new Error(`Failed to list directory ${directory}: ${error.message}`);
+    }
+  }
+
   async updateCommandStatus(commandId, status, result) {
     try {
       await axios.put(`${this.cloudApiUrl}/api/commands/${commandId}`, {
@@ -247,11 +346,11 @@ export default ${componentName};
     }
   }
 
-  startPolling(intervalMs = 5000) {
+  startPolling(intervalMs = 15000) {
     if (this.isRunning) return;
     
     this.isRunning = true;
-    console.log(`🔄 Starting command polling every ${intervalMs}ms`);
+    console.log(`🔄 Starting command polling every ${intervalMs}ms (15 seconds)`);
     
     setInterval(() => {
       this.pollForCommands();

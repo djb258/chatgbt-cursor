@@ -1,5 +1,26 @@
 {
-  "instructions": [],
-  "lastUpdated": "2025-07-09T18:13:56.105Z",
+  "instructions": [
+    {
+      "id": "3318bae1-2502-4927-92f3-1a8f7da29fe4",
+      "type": "ai_assistant_instruction",
+      "assistant_id": "cursor_ai",
+      "task": "Create a simple test component",
+      "context": "Testing the fixed collaboration system",
+      "prompts": [
+        "Create a TestComponent.tsx file",
+        "Add basic React structure",
+        "Include a test message"
+      ],
+      "code_examples": {},
+      "requirements": [
+        "TypeScript",
+        "React"
+      ],
+      "timestamp": "2025-07-09T18:33:48.654Z",
+      "status": "pending",
+      "source": "chatgpt"
+    }
+  ],
+  "lastUpdated": "2025-07-09T18:33:48.657Z",
   "note": "This file is monitored by Cursor AI for new instructions from ChatGPT"
 }

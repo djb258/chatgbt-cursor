@@ -74,7 +74,9 @@ app.get('/', (req, res) => {
       'file_create': 'Create new files with content',
       'file_modify': 'Modify existing files',
       'component_create': 'Create React components',
-      'api_endpoint': 'Create API endpoints'
+      'api_endpoint': 'Create API endpoints',
+      'file_read': 'Read file contents and return them',
+      'directory_list': 'List directory contents and structure'
     },
     usage: {
       sendCommand: 'POST /api/commands with { type, data, priority }',
