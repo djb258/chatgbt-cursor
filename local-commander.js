@@ -1,6 +1,10 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+
+const execAsync = promisify(exec);
 
 class LocalCommanderClient {
   constructor() {
@@ -90,6 +94,30 @@ class LocalCommanderClient {
           break;
         case 'directory_list':
           await this.handleDirectoryList(command);
+          break;
+        case 'file_modify':
+          await this.handleFileModify(command);
+          break;
+        case 'file_delete':
+          await this.handleFileDelete(command);
+          break;
+        case 'terminal_command':
+          await this.handleTerminalCommand(command);
+          break;
+        case 'git_operation':
+          await this.handleGitOperation(command);
+          break;
+        case 'npm_operation':
+          await this.handleNpmOperation(command);
+          break;
+        case 'search_files':
+          await this.handleSearchFiles(command);
+          break;
+        case 'code_analysis':
+          await this.handleCodeAnalysis(command);
+          break;
+        case 'project_info':
+          await this.handleProjectInfo(command);
           break;
         default:
           await this.handleGenericCommand(command);
@@ -318,6 +346,231 @@ export default ${componentName};
       
     } catch (error) {
       throw new Error(`Failed to list directory ${directory}: ${error.message}`);
+    }
+  }
+
+  async handleFileModify(command) {
+    const { filepath, content } = command.data;
+    console.log(`📝 Modifying file: ${filepath}`);
+    
+    try {
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`File not found: ${filepath}`);
+      }
+      
+      fs.writeFileSync(filepath, content);
+      
+      const result = `File modified successfully: ${filepath} (${content.length} characters)`;
+      await this.updateCommandStatus(command.id, 'completed', result);
+      
+    } catch (error) {
+      throw new Error(`Failed to modify file ${filepath}: ${error.message}`);
+    }
+  }
+
+  async handleFileDelete(command) {
+    const { filepath } = command.data;
+    console.log(`🗑️ Deleting file: ${filepath}`);
+    
+    try {
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`File not found: ${filepath}`);
+      }
+      
+      fs.unlinkSync(filepath);
+      
+      const result = `File deleted successfully: ${filepath}`;
+      await this.updateCommandStatus(command.id, 'completed', result);
+      
+    } catch (error) {
+      throw new Error(`Failed to delete file ${filepath}: ${error.message}`);
+    }
+  }
+
+  async handleTerminalCommand(command) {
+    const { command: cmd } = command.data;
+    console.log(`🖥️ Executing terminal command: ${cmd}`);
+    
+    try {
+      const result = await execAsync(cmd);
+      console.log(`✅ Terminal command executed: ${cmd}`);
+      await this.updateCommandStatus(command.id, 'completed', result.stdout);
+    } catch (error) {
+      console.error(`❌ Error executing terminal command:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
+    }
+  }
+
+  async handleGitOperation(command) {
+    const { operation, repository, branch } = command.data;
+    console.log(`🔗 Git Operation: ${operation} on ${repository}`);
+    
+    try {
+      if (operation === 'clone') {
+        await execAsync(`git clone ${repository}`);
+        console.log(`✅ Git clone successful: ${repository}`);
+      } else if (operation === 'checkout') {
+        await execAsync(`git checkout ${branch}`);
+        console.log(`✅ Git checkout successful: ${branch}`);
+      } else if (operation === 'pull') {
+        await execAsync(`git pull origin ${branch}`);
+        console.log(`✅ Git pull successful: ${branch}`);
+      } else if (operation === 'push') {
+        await execAsync(`git push origin ${branch}`);
+        console.log(`✅ Git push successful: ${branch}`);
+      } else {
+        throw new Error(`Unknown Git operation: ${operation}`);
+      }
+      await this.updateCommandStatus(command.id, 'completed', `Git ${operation} successful on ${repository}`);
+    } catch (error) {
+      console.error(`❌ Error executing Git operation:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
+    }
+  }
+
+  async handleNpmOperation(command) {
+    const { operation, packageName } = command.data;
+    console.log(`🎁 NPM Operation: ${operation} on ${packageName}`);
+    
+    try {
+      if (operation === 'install') {
+        await execAsync(`npm install ${packageName}`);
+        console.log(`✅ NPM install successful: ${packageName}`);
+      } else if (operation === 'uninstall') {
+        await execAsync(`npm uninstall ${packageName}`);
+        console.log(`✅ NPM uninstall successful: ${packageName}`);
+      } else if (operation === 'update') {
+        await execAsync(`npm update ${packageName}`);
+        console.log(`✅ NPM update successful: ${packageName}`);
+      } else {
+        throw new Error(`Unknown NPM operation: ${operation}`);
+      }
+      await this.updateCommandStatus(command.id, 'completed', `NPM ${operation} successful on ${packageName}`);
+    } catch (error) {
+      console.error(`❌ Error executing NPM operation:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
+    }
+  }
+
+  async handleSearchFiles(command) {
+    const { query, directory = '.' } = command.data;
+    console.log(`🔍 Searching files for: "${query}" in ${directory}`);
+    
+    try {
+      if (!fs.existsSync(directory)) {
+        throw new Error(`Directory not found: ${directory}`);
+      }
+      
+      const findFiles = (dir, query) => {
+        const results = [];
+        const files = fs.readdirSync(dir);
+        
+        for (const file of files) {
+          const fullPath = path.join(dir, file);
+          const relativePath = path.relative(directory, fullPath);
+          
+          if (fs.statSync(fullPath).isDirectory()) {
+            results.push(...findFiles(fullPath, query));
+          } else {
+            const content = fs.readFileSync(fullPath, 'utf8');
+            if (content.includes(query)) {
+              results.push({
+                path: relativePath,
+                fullPath,
+                content: content.substring(0, 100) + '...' // Show first 100 chars
+              });
+            }
+          }
+        }
+        return results;
+      };
+      
+      const results = findFiles(directory, query);
+      
+      const result = {
+        query,
+        directory,
+        results,
+        total: results.length,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ Search completed: ${results.length} files found.`);
+      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+    } catch (error) {
+      console.error(`❌ Error searching files:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
+    }
+  }
+
+  async handleCodeAnalysis(command) {
+    const { filepath } = command.data;
+    console.log(`🔍 Analyzing code in ${filepath}`);
+    
+    try {
+      if (!fs.existsSync(filepath)) {
+        throw new Error(`File not found: ${filepath}`);
+      }
+      
+      const content = fs.readFileSync(filepath, 'utf8');
+      const lines = content.split('\n');
+      const issues = [];
+      
+      // Simple example: check for common issues
+      if (lines.length > 100 && lines.length < 1000) {
+        issues.push('File is likely a boilerplate file (too short or too long)');
+      }
+      if (content.includes('console.log(') && !content.includes('console.error(')) {
+        issues.push('File contains console.log but no console.error');
+      }
+      if (content.includes('import React from') && content.includes('export const')) {
+        issues.push('File is likely a React component file (contains React import and export)');
+      }
+      
+      const result = {
+        filepath,
+        issues,
+        total: issues.length,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ Code analysis completed: ${issues.length} issues found.`);
+      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+    } catch (error) {
+      console.error(`❌ Error code analysis:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
+    }
+  }
+
+  async handleProjectInfo(command) {
+    const { directory = '.' } = command.data;
+    console.log(`📁 Project Info for: ${directory}`);
+    
+    try {
+      if (!fs.existsSync(directory)) {
+        throw new Error(`Directory not found: ${directory}`);
+      }
+      
+      const packageJson = JSON.parse(fs.readFileSync(`${directory}/package.json`, 'utf8'));
+      const gitStatus = await execAsync(`git -C ${directory} status --porcelain`);
+      const gitBranch = await execAsync(`git -C ${directory} rev-parse --abbrev-ref HEAD`);
+      
+      const result = {
+        directory,
+        packageJson,
+        gitBranch: gitBranch.stdout.trim(),
+        gitStatus: gitStatus.stdout,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`✅ Project info collected: ${directory}`);
+      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+    } catch (error) {
+      console.error(`❌ Error collecting project info:`, error.message);
+      await this.updateCommandStatus(command.id, 'failed', error.message);
     }
   }
 

@@ -73,10 +73,17 @@ app.get('/', (req, res) => {
       'code_fix': 'Fix code issues in files',
       'file_create': 'Create new files with content',
       'file_modify': 'Modify existing files',
+      'file_delete': 'Delete files',
       'component_create': 'Create React components',
       'api_endpoint': 'Create API endpoints',
       'file_read': 'Read file contents and return them',
-      'directory_list': 'List directory contents and structure'
+      'directory_list': 'List directory contents and structure',
+      'terminal_command': 'Execute terminal commands',
+      'git_operation': 'Perform Git operations (clone, pull, push, checkout)',
+      'npm_operation': 'Perform NPM operations (install, uninstall, update)',
+      'search_files': 'Search for text in files',
+      'code_analysis': 'Analyze code for issues and patterns',
+      'project_info': 'Get project information (package.json, git status)'
     },
     usage: {
       sendCommand: 'POST /api/commands with { type, data, priority }',
