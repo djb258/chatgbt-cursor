@@ -61,9 +61,20 @@ app.get('/', (req, res) => {
     description: 'Cloud-based API for ChatGPT to send commands to local development environments',
     endpoints: {
       '/health': 'Health check endpoint',
-      '/api/commands': 'POST - Send commands, GET - Retrieve commands',
+      '/api/commands': 'POST - Send commands, GET - Retrieve pending commands',
+      '/api/commands/completed': 'GET - Retrieve completed commands',
+      '/api/commands/:commandId': 'GET - Get specific command result',
+      '/api/commands/:commandId': 'PUT - Update command status (local client)',
       '/api/clients': 'POST - Register client, GET - List clients',
       '/api/status': 'GET - System status and statistics'
+    },
+    commandTypes: {
+      'ai_assistant_instruction': 'Send structured instructions to AI assistants',
+      'code_fix': 'Fix code issues in files',
+      'file_create': 'Create new files with content',
+      'file_modify': 'Modify existing files',
+      'component_create': 'Create React components',
+      'api_endpoint': 'Create API endpoints'
     },
     usage: {
       sendCommand: 'POST /api/commands with { type, data, priority }',
@@ -159,6 +170,67 @@ app.get('/api/commands', (req, res) => {
 
   } catch (error) {
     console.error('Error retrieving commands:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// Get completed commands (for ChatGPT to see what was done)
+app.get('/api/commands/completed', (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    
+    const completedCommands = commands
+      .filter(cmd => cmd.status === 'completed' || cmd.status === 'failed')
+      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+      .slice(0, parseInt(limit));
+
+    res.json({
+      commands: completedCommands,
+      total: completedCommands.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error retrieving completed commands:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// Get specific command result (for ChatGPT to check results)
+app.get('/api/commands/:commandId', (req, res) => {
+  try {
+    const { commandId } = req.params;
+    
+    const command = commands.find(cmd => cmd.id === commandId);
+    if (!command) {
+      return res.status(404).json({
+        error: 'Command not found'
+      });
+    }
+
+    res.json({
+      command: {
+        id: command.id,
+        type: command.type,
+        data: command.data,
+        priority: command.priority,
+        status: command.status,
+        result: command.result,
+        error: command.error,
+        timestamp: command.timestamp,
+        completedAt: command.completedAt,
+        attempts: command.attempts
+      }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving command:', error);
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
