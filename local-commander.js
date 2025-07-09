@@ -122,9 +122,6 @@ class LocalCommanderClient {
         default:
           await this.handleGenericCommand(command);
       }
-
-      // Report success
-      await this.updateCommandStatus(command.id, 'completed', 'Command executed successfully');
       
     } catch (error) {
       console.error(`❌ Error executing command:`, error.message);
@@ -257,30 +254,31 @@ export default ${componentName};
   }
 
   async handleFileRead(command) {
-    const { filepath, encoding = 'utf8' } = command.data;
-    console.log(`📖 Reading file: ${filepath}`);
+    const { filename, filepath, encoding = 'utf8' } = command.data;
+    const targetFile = filename || filepath;
+    console.log(`📖 Reading file: ${targetFile}`);
     
     try {
-      if (!fs.existsSync(filepath)) {
-        throw new Error(`File not found: ${filepath}`);
+      if (!fs.existsSync(targetFile)) {
+        throw new Error(`File not found: ${targetFile}`);
       }
       
-      const content = fs.readFileSync(filepath, encoding);
-      const stats = fs.statSync(filepath);
+      const content = fs.readFileSync(targetFile, encoding);
+      const stats = fs.statSync(targetFile);
       
       const result = {
-        filepath,
+        filepath: targetFile,
         content,
         size: stats.size,
         modified: stats.mtime.toISOString(),
         encoding
       };
       
-      console.log(`✅ File read successfully: ${filepath} (${stats.size} bytes)`);
+      console.log(`✅ File read successfully: ${targetFile} (${stats.size} bytes)`);
       await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
       
     } catch (error) {
-      throw new Error(`Failed to read file ${filepath}: ${error.message}`);
+      throw new Error(`Failed to read file ${targetFile}: ${error.message}`);
     }
   }
 
