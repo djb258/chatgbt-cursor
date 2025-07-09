@@ -265,6 +265,22 @@ app.put('/api/commands/:commandId', (req, res) => {
     command.error = error;
     command.completedAt = new Date().toISOString();
 
+    // For file_read commands, update the data field with the file content
+    if (command.type === 'file_read' && status === 'completed' && result) {
+      try {
+        const resultData = JSON.parse(result);
+        if (resultData.content !== undefined) {
+          command.data.content = resultData.content;
+          command.data.size = resultData.size;
+          command.data.modified = resultData.modified;
+          command.data.encoding = resultData.encoding;
+        }
+      } catch (parseError) {
+        // If result is not JSON, store it as content directly
+        command.data.content = result;
+      }
+    }
+
     console.log(`✅ Command ${commandId} updated: ${status}`);
 
     res.json({
