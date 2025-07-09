@@ -1,15 +1,57 @@
-# 🤖 ChatGPT Commander Cloud API
+# ChatGPT Commander Cloud API
 
-A cloud-based API service that enables **two-way communication** between ChatGPT and your local development environment. ChatGPT can send commands through this cloud API, and your local commander client can retrieve and execute them.
+Universal AI development bridge system that enables two-way communication between AI models and local development environments.
 
-## 🚀 Features
+## Quick Start
 
-- **Cloud API**: Deploy to Render, Heroku, or any cloud platform
-- **Command Queue**: Store and manage commands with priority levels
-- **Client Management**: Register multiple local development environments
-- **Real-time Updates**: Webhook notifications for new commands
-- **Security**: Rate limiting, CORS, and API key authentication
-- **Monitoring**: Health checks and system status endpoints
+### 1. Setup Cloud API
+```bash
+npm install
+npm start
+```
+
+### 2. Setup CLI Tool
+```bash
+# Install the CLI globally
+npm run cli:setup
+
+# Register as a client
+chatgbt register
+
+# Start chatting
+chatgbt chat
+```
+
+## CLI Integration
+
+The [ChatGPT Commander CLI](https://github.com/djb258/chatgbt-commander-cli) provides a universal interface to this cloud API:
+
+### Basic Commands
+```bash
+chatgbt register            # Register as client
+chatgbt chat               # Interactive chat
+chatgbt chat -m "Hello"    # Single message
+chatgbt llm -l             # List providers
+chatgbt llm -s claude      # Switch to Claude
+chatgbt llm -s gemini      # Switch to Gemini
+chatgbt config -l          # View settings
+chatgbt history -l         # View history
+chatgbt clear              # Clear terminal
+```
+
+### Multi-LLM Support
+- **ChatGPT**: Primary coding assistant
+- **Claude**: Code review and documentation
+- **Gemini**: Data analysis and research
+- **Custom**: Add your own providers
+
+### Features
+- ✅ No API keys required
+- ✅ Universal LLM access
+- ✅ Cross-platform support
+- ✅ Command history
+- ✅ Configuration management
+- ✅ Interactive prompts
 
 ## 📋 Architecture
 

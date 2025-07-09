@@ -283,7 +283,7 @@ export default ${componentName};
   }
 
   async handleDirectoryList(command) {
-    const { directory = '.', recursive = false, includeFiles = true, includeDirs = true } = command.data;
+    const { directory = '.', recursive = false, includeFiles = true, includeDirs = true, excludePatterns = ['node_modules', '.git'] } = command.data;
     console.log(`📁 Listing directory: ${directory}`);
     
     try {
@@ -298,6 +298,11 @@ export default ${componentName};
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           const relativePath = path.relative(directory, fullPath);
+          
+          // Skip excluded patterns
+          if (excludePatterns.some(pattern => entry.name.includes(pattern))) {
+            continue;
+          }
           
           if (entry.isDirectory()) {
             if (includeDirs) {
@@ -336,11 +341,30 @@ export default ${componentName};
         directory,
         items,
         total: items.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        note: recursive ? 'Recursive listing (max 3 levels deep)' : 'Top-level listing'
       };
       
       console.log(`✅ Directory listed successfully: ${directory} (${items.length} items)`);
-      await this.updateCommandStatus(command.id, 'completed', JSON.stringify(result));
+      
+      // Handle large responses
+      const resultStr = JSON.stringify(result);
+      if (resultStr.length > 8000) {
+        const chunks = this.chunkString(resultStr, 8000);
+        const chunkResult = {
+          type: 'chunked_directory_list',
+          total_chunks: chunks.length,
+          directory,
+          total_items: items.length,
+          chunks: chunks.map((chunk, index) => ({
+            chunk_number: index + 1,
+            content: chunk
+          }))
+        };
+        await this.updateCommandStatus(command.id, 'completed', JSON.stringify(chunkResult));
+      } else {
+        await this.updateCommandStatus(command.id, 'completed', resultStr);
+      }
       
     } catch (error) {
       throw new Error(`Failed to list directory ${directory}: ${error.message}`);
@@ -392,11 +416,53 @@ export default ${componentName};
     try {
       const result = await execAsync(cmd);
       console.log(`✅ Terminal command executed: ${cmd}`);
-      await this.updateCommandStatus(command.id, 'completed', result.stdout);
+      
+      // Handle large responses
+      const output = result.stdout;
+      if (output.length > 50000) { // Very large response - save to file
+        const fileResponse = await this.saveLargeResponseToFile(output, command.id, 'terminal_output');
+        await this.updateCommandStatus(command.id, 'completed', JSON.stringify(fileResponse));
+      } else if (output.length > 8000) { // Large response - chunk it
+        const chunks = this.chunkString(output, 8000);
+        const chunkResult = {
+          type: 'chunked_response',
+          total_chunks: chunks.length,
+          command: cmd,
+          chunks: chunks.map((chunk, index) => ({
+            chunk_number: index + 1,
+            content: chunk
+          }))
+        };
+        await this.updateCommandStatus(command.id, 'completed', JSON.stringify(chunkResult));
+      } else {
+        await this.updateCommandStatus(command.id, 'completed', output);
+      }
     } catch (error) {
       console.error(`❌ Error executing terminal command:`, error.message);
       await this.updateCommandStatus(command.id, 'failed', error.message);
     }
+  }
+
+  // Helper method to chunk large strings
+  chunkString(str, size) {
+    const chunks = [];
+    for (let i = 0; i < str.length; i += size) {
+      chunks.push(str.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  // Helper method to save large responses to files
+  async saveLargeResponseToFile(content, commandId, type = 'response') {
+    const filename = `temp_${commandId}_${type}.txt`;
+    fs.writeFileSync(filename, content);
+    return {
+      type: 'file_response',
+      filename,
+      size: content.length,
+      note: 'Large response saved to file. Use file_read command to retrieve content.',
+      commandId
+    };
   }
 
   async handleGitOperation(command) {

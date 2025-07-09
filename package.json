@@ -7,7 +7,20 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'",
-    "test": "jest"
+    "test": "jest",
+    "cli:install": "npm install -g chatgbt-commander-cli",
+    "cli:setup": "npm run cli:install && echo 'CLI installed! Run: chatgbt register'",
+    "cli:test": "chatgbt chat -m 'Hello from main project!'",
+    "integrate": "node setup-integration.js",
+    "switch": "node project-switcher.js auto",
+    "switch:list": "node project-switcher.js list",
+    "switch:project": "node project-switcher.js switch",
+    "cursor:setup": "node cursor-integration.js setup",
+    "cursor:open": "node cursor-integration.js open",
+    "cursor:shortcuts": "node cursor-integration.js shortcuts",
+    "cursor:startup": "node cursor-startup.js setup",
+    "install:global": "npm run cli:setup && npm run cursor:startup",
+    "install:quick": "npm install -g chatgbt-commander-cli && npm run cursor:startup"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -34,6 +47,14 @@
     "cloud",
     "automation"
   ],
-  "author": "Your Name",
-  "license": "MIT"
+  "author": "ChatGPT Commander Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/djb258/chatgbt-cursor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/djb258/chatgbt-cursor/issues"
+  },
+  "homepage": "https://github.com/djb258/chatgbt-cursor#readme"
 }

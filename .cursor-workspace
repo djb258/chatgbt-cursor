@@ -1,0 +1,12 @@
+{
+  "name": "chatgbt-cursor",
+  "path": "C:\\Users\\CUSTOMER PC\\Cursor Repo\\chatgbt-cursor",
+  "cursor": true,
+  "timestamp": "2025-07-09T23:28:18.621Z",
+  "commands": {
+    "chat": "chatgbt chat",
+    "claude": "chatgbt llm -s claude && chatgbt chat",
+    "config": "chatgbt config -l",
+    "history": "chatgbt history -l"
+  }
+}
