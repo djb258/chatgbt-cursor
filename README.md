@@ -129,6 +129,15 @@ POST /api/clients
 }
 ```
 
+### Google Drive Integration
+```
+GET /api/drive/files                    # List files in Google Drive
+POST /api/drive/upload                  # Upload file to Google Drive
+GET /api/drive/download/:fileId         # Download file from Google Drive
+GET /api/drive/search?q=query           # Search files in Google Drive
+POST /api/drive/sync                    # Sync local folder to Google Drive
+```
+
 ## 🔧 Local Commander Client
 
 Create a local client that polls the cloud API:
@@ -191,7 +200,13 @@ Set these in Render dashboard:
 NODE_ENV=production
 PORT=10000
 ALLOWED_ORIGINS=https://chat.openai.com
+
+# Google Drive Integration (Optional)
+GOOGLE_DRIVE_CREDENTIALS={"type":"service_account",...}
+GOOGLE_DRIVE_FOLDER_ID=your_folder_id_here
 ```
+
+**Note:** For Google Drive integration setup, see [GOOGLE-DRIVE-SETUP.md](GOOGLE-DRIVE-SETUP.md)
 
 ### 5. Deploy
 - Click "Create Web Service"
