@@ -62,6 +62,43 @@ curl -X POST https://your-render-app.onrender.com/api/drive/sync \
   -d '{"localFolder": "./ai-context"}'
 ```
 
+## CLI Configuration for Render
+
+Configure the CLI to work with your Render deployment:
+
+### Automatic Setup
+```bash
+# Configure CLI for Render (uses default app name: chatgbt-cursor)
+npm run cli:render:setup
+
+# Or specify your app name
+node configure-cli-render.js your-app-name
+```
+
+### Manual Setup
+```bash
+# Install CLI globally
+npm install -g chatgbt-commander-cli
+
+# Set API URL to your Render deployment
+chatgbt config set apiUrl https://your-app-name.onrender.com
+
+# Register as client
+chatgbt register
+
+# Test connection
+chatgbt chat -m "Hello from Render!"
+```
+
+### Available CLI Commands
+```bash
+npm run cli:render:test     # Test Render connection
+npm run cli:render:context  # Upload context to Render
+chatgbt chat               # Start interactive chat
+chatgbt llm -l             # List available LLMs
+chatgbt config -l          # View configuration
+```
+
 ## Security Notes
 - The `google.env` file is excluded from git tracking
 - Use Render's environment variables for production credentials

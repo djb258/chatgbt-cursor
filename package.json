@@ -22,7 +22,10 @@
     "install:global": "npm run cli:setup && npm run cursor:startup",
     "install:quick": "npm install -g chatgbt-commander-cli && npm run cursor:startup",
     "context:build": "node project-context-builder.js",
-    "context:upload": "npm run context:build && curl -X POST https://chatgbt-cursor.onrender.com/api/drive/sync -H 'Content-Type: application/json' -d '{\"localFolder\": \"./ai-context\"}'"
+    "context:upload": "npm run context:build && curl -X POST https://chatgbt-cursor.onrender.com/api/drive/sync -H 'Content-Type: application/json' -d '{\"localFolder\": \"./ai-context\"}'",
+    "cli:render:setup": "node configure-cli-render.js",
+    "cli:render:test": "chatgbt chat -m \"Testing Render deployment\"",
+    "cli:render:context": "npm run context:build && curl -X POST https://chatgbt-cursor.onrender.com/api/drive/sync -H 'Content-Type: application/json' -d '{\"localFolder\": \"./ai-context\"}'"
   },
   "dependencies": {
     "axios": "^1.10.0",
