@@ -13,6 +13,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const { v4: uuidv4 } = require('uuid');
 const cron = require('node-cron');
+const GoogleDriveIntegration = require('./google-drive-integration');
 require('dotenv').config();
 
 const app = express();
@@ -425,6 +426,116 @@ cron.schedule('*/5 * * * *', () => {
       client.status = 'inactive';
     }
   });
+});
+
+// Initialize Google Drive integration
+const googleDrive = new GoogleDriveIntegration();
+
+// Google Drive endpoints
+app.get('/api/drive/files', async (req, res) => {
+  try {
+    const files = await googleDrive.listFiles();
+    res.json({
+      success: true,
+      files: files
+    });
+  } catch (error) {
+    console.error('Error listing Google Drive files:', error);
+    res.status(500).json({
+      error: 'Failed to list Google Drive files',
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/drive/upload', async (req, res) => {
+  try {
+    const { filePath, fileName } = req.body;
+    
+    if (!filePath) {
+      return res.status(400).json({
+        error: 'filePath is required'
+      });
+    }
+
+    const result = await googleDrive.uploadFile(filePath, fileName);
+    res.json({
+      success: true,
+      file: result
+    });
+  } catch (error) {
+    console.error('Error uploading to Google Drive:', error);
+    res.status(500).json({
+      error: 'Failed to upload to Google Drive',
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/drive/download/:fileId', async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { outputPath } = req.query;
+    
+    if (!outputPath) {
+      return res.status(400).json({
+        error: 'outputPath query parameter is required'
+      });
+    }
+
+    const result = await googleDrive.downloadFile(fileId, outputPath);
+    res.json({
+      success: true,
+      filePath: result
+    });
+  } catch (error) {
+    console.error('Error downloading from Google Drive:', error);
+    res.status(500).json({
+      error: 'Failed to download from Google Drive',
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/drive/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    if (!query) {
+      return res.status(400).json({
+        error: 'query parameter is required'
+      });
+    }
+
+    const files = await googleDrive.searchFiles(query);
+    res.json({
+      success: true,
+      files: files
+    });
+  } catch (error) {
+    console.error('Error searching Google Drive:', error);
+    res.status(500).json({
+      error: 'Failed to search Google Drive',
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/drive/sync', async (req, res) => {
+  try {
+    const { localFolder } = req.body;
+    await googleDrive.syncOutputFolder(localFolder);
+    res.json({
+      success: true,
+      message: 'Output folder synced to Google Drive'
+    });
+  } catch (error) {
+    console.error('Error syncing to Google Drive:', error);
+    res.status(500).json({
+      error: 'Failed to sync to Google Drive',
+      message: error.message
+    });
+  }
 });
 
 // Notify clients about new commands

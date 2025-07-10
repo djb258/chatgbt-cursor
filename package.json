@@ -20,7 +20,9 @@
     "cursor:shortcuts": "node cursor-integration.js shortcuts",
     "cursor:startup": "node cursor-startup.js setup",
     "install:global": "npm run cli:setup && npm run cursor:startup",
-    "install:quick": "npm install -g chatgbt-commander-cli && npm run cursor:startup"
+    "install:quick": "npm install -g chatgbt-commander-cli && npm run cursor:startup",
+    "context:build": "node project-context-builder.js",
+    "context:upload": "npm run context:build && curl -X POST https://chatgbt-cursor.onrender.com/api/drive/sync -H 'Content-Type: application/json' -d '{\"localFolder\": \"./ai-context\"}'"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -29,6 +31,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "googleapis": "^128.0.0",
     "helmet": "^7.1.0",
     "node-cron": "^3.0.3",
     "uuid": "^9.0.1"

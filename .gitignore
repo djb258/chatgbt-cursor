@@ -43,6 +43,7 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+google.env
 
 # IDE files
 .vscode/
